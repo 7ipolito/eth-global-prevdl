@@ -239,7 +239,8 @@ export function getMatchingAds(userProfile: UserProfile): Ad[] {
     const interestMatch = userProfile.interests.includes(ad.targetInterest);
     
     // Gender check (0 = any gender)
-    const genderMatch = !ad.targetGender || ad.targetGender === Gender.ANY || userProfile.gender === ad.targetGender;
+    // @ts-ignore - Gender.ANY is 0, userProfile.gender can be undefined or 1-3
+    const genderMatch = !ad.targetGender || ad.targetGender === Gender.ANY || !userProfile.gender || (userProfile.gender !== undefined && userProfile.gender === ad.targetGender);
     
     return ageMatch && locationMatch && professionMatch && interestMatch && genderMatch;
   }).sort((a, b) => b.rankingScore - a.rankingScore); // Sort by ranking score (highest bid first)
@@ -253,7 +254,8 @@ export function simulateMatch(userProfile: UserProfile, ad: Ad) {
   const locationMatch = ad.targetLocation === Location.ANY || userProfile.location === ad.targetLocation;
   const professionMatch = ad.targetProfession === Profession.ANY || userProfile.profession === ad.targetProfession;
   const interestMatch = userProfile.interests.includes(ad.targetInterest);
-  const genderMatch = !ad.targetGender || ad.targetGender === Gender.ANY || userProfile.gender === ad.targetGender;
+  // @ts-ignore - Gender.ANY is 0, userProfile.gender can be undefined or 1-3
+  const genderMatch = !ad.targetGender || ad.targetGender === Gender.ANY || !userProfile.gender || (userProfile.gender !== undefined && userProfile.gender === ad.targetGender);
   
   const isMatch = ageMatch && locationMatch && professionMatch && interestMatch && genderMatch;
   

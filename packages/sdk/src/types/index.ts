@@ -82,6 +82,8 @@ export interface Ad {
   description: string;
   imageUrl?: string;
   ctaUrl: string;
+  ctaLink?: string; // Alias for ctaUrl
+  ctaText?: string; // Call-to-action button text
   
   // Targeting (public)
   targetAgeMin: number;
@@ -167,13 +169,25 @@ export interface MatchResult {
 // SDK CONFIG
 // ============================================
 
+export type PrevDLEnvironment = 'local' | 'sandbox' | 'devnet' | 'production';
+
 export interface SDKConfig {
-  mode: 'local' | 'devnet';
+  mode: 'local' | 'sandbox' | 'devnet';
   aztecNodeUrl?: string;
+  adTargetingAddress?: string;
+  adAuctionAddress?: string;
   contracts?: {
     adTargeting?: string;
     adAuction?: string;
   };
+}
+
+export interface PrevDLAdsConfig {
+  clientId: string;
+  environment?: PrevDLEnvironment;
+  aztecNodeUrl?: string;
+  adTargetingAddress?: string;
+  adAuctionAddress?: string;
 }
 
 // ============================================
