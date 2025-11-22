@@ -1,0 +1,29 @@
+{
+  "name": "eth-latam-adszk",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "prettier": "^3.3.3",
+    "tailwindcss": "^4",
+    "turbo": "^2.2.3"
+  },
+  "packageManager": "bun@1.1.38",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "babel-plugin-react-css-modules": "^5.2.6"
+  }
+}
