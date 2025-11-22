@@ -1,30 +1,30 @@
 use dep::aztec::macros::aztec;
 
 /**
- * Contrato de Segmentacao de Anuncios com Privacidade - PREVDL
+ * Contrato de Segmentação de Anúncios com Privacidade - PREVDL
  * 
- * Permite verificar se um usuario e compativel com um anuncio
- * sem revelar os dados pessoais do usuario publicamente.
+ * Permite verificar se um usuário é compatível com um anúncio
+ * sem revelar os dados pessoais do usuário publicamente.
  * 
  * FILTROS SUPORTADOS:
  * - Idade (min/max)
- * - Localizacao (cidade/regiao)
- * - Profissao
- * - Interesses (ate 3 por usuario)
- * - Genero (opcional)
+ * - Localização (cidade/região)
+ * - Profissão
+ * - Interesses (até 3 por usuário)
+ * - Gênero (opcional)
  * 
- * CODIGOS DE LOCALIZACAO:
- * 0 = Qualquer localizacao
- * 1 = Sao Paulo
+ * CÓDIGOS DE LOCALIZAÇÃO:
+ * 0 = Qualquer localização
+ * 1 = São Paulo
  * 2 = Rio de Janeiro
- * 3 = Brasilia
+ * 3 = Brasília
  * 4 = Belo Horizonte
  * 5 = Porto Alegre
  * 10 = International
  * 99 = Outras cidades Brasil
  * 
- * CODIGOS DE PROFISSAO:
- * 0 = Qualquer profissao
+ * CÓDIGOS DE PROFISSÃO:
+ * 0 = Qualquer profissão
  * 1 = Software Engineer
  * 2 = Designer
  * 3 = Product Manager
@@ -35,7 +35,7 @@ use dep::aztec::macros::aztec;
  * 8 = Freelancer
  * 99 = Outras
  * 
- * CODIGOS DE INTERESSE:
+ * CÓDIGOS DE INTERESSE:
  * 1 = Tech
  * 2 = Crypto
  * 3 = Gaming
@@ -47,8 +47,8 @@ use dep::aztec::macros::aztec;
  * 9 = Art
  * 10 = Business
  * 
- * CODIGOS DE GENERO:
- * 0 = Qualquer genero
+ * CÓDIGOS DE GÊNERO:
+ * 0 = Qualquer gênero
  * 1 = Masculino
  * 2 = Feminino
  * 3 = Outro
@@ -63,18 +63,18 @@ pub contract AdTargeting {
     use dep::aztec::protocol_types::{
         address::AztecAddress,
         hash::poseidon2_hash,
-        traits::{Hash, ToField},
+        traits::ToField,
     };
     use dep::aztec::state_vars::{Map, PublicMutable};
 
     #[storage]
     struct Storage<Context> {
         admin: PublicMutable<AztecAddress, Context>,
-        // Contador de impressoes por anuncio (publico)
+        // Contador de impressões por anúncio (público)
         ad_impressions: Map<Field, PublicMutable<Field, Context>, Context>,
-        // Contador de matches bem-sucedidos (quando ha compatibilidade)
+        // Contador de matches bem-sucedidos (quando há compatibilidade)
         ad_matches: Map<Field, PublicMutable<Field, Context>, Context>,
-        // Contador de rejeicoes (nao compativel)
+        // Contador de rejeições (não compatível)
         ad_rejections: Map<Field, PublicMutable<Field, Context>, Context>,
     }
 
@@ -85,32 +85,32 @@ pub contract AdTargeting {
     }
 
     /**
-     * Funcao PRIVADA: Verifica compatibilidade completa usuario-anuncio
+     * Função PRIVADA: Verifica compatibilidade completa usuário-anúncio
      * 
-     * IMPORTANTE: Esta funcao roda PRIVADAMENTE no dispositivo do usuario.
-     * Os dados pessoais (idade, profissao, localizacao) NUNCA sao revelados publicamente.
-     * Apenas o resultado (match sim/nao) e exposto.
+     * IMPORTANTE: Esta função roda PRIVADAMENTE no dispositivo do usuário.
+     * Os dados pessoais (idade, profissão, localização) NUNCA são revelados publicamente.
+     * Apenas o resultado (match sim/não) é exposto.
      * 
-     * @param ad_id - ID do anuncio
-     * @param user_age - Idade do usuario (PRIVADO)
-     * @param user_location - Localizacao do usuario (PRIVADO)
-     * @param user_profession - Profissao do usuario (PRIVADO)
+     * @param ad_id - ID do anúncio
+     * @param user_age - Idade do usuário (PRIVADO)
+     * @param user_location - Localização do usuário (PRIVADO)
+     * @param user_profession - Profissão do usuário (PRIVADO)
      * @param user_interest_1 - Primeiro interesse (PRIVADO)
      * @param user_interest_2 - Segundo interesse (PRIVADO)
      * @param user_interest_3 - Terceiro interesse (PRIVADO)
-     * @param user_gender - Genero do usuario (PRIVADO, opcional)
-     * @param ad_min_age - Idade minima target (PUBLICO)
-     * @param ad_max_age - Idade maxima target (PUBLICO)
-     * @param ad_target_location - Localizacao target (PUBLICO)
-     * @param ad_target_profession - Profissao target (PUBLICO)
-     * @param ad_required_interest - Interesse requerido (PUBLICO)
-     * @param ad_target_gender - Genero target (PUBLICO)
-     * @return 1 se compativel, 0 se nao
+     * @param user_gender - Gênero do usuário (PRIVADO, opcional)
+     * @param ad_min_age - Idade mínima target (PÚBLICO)
+     * @param ad_max_age - Idade máxima target (PÚBLICO)
+     * @param ad_target_location - Localização target (PÚBLICO)
+     * @param ad_target_profession - Profissão target (PÚBLICO)
+     * @param ad_required_interest - Interesse requerido (PÚBLICO)
+     * @param ad_target_gender - Gênero target (PÚBLICO)
+     * @return 1 se compatível, 0 se não
      */
     #[external("private")]
     fn check_ad_compatibility(
         ad_id: Field,
-        // DADOS PRIVADOS DO USUARIO (nunca revelados)
+        // DADOS PRIVADOS DO USUÁRIO (nunca revelados)
         user_age: u8,
         user_location: u8,
         user_profession: u8,
@@ -118,7 +118,7 @@ pub contract AdTargeting {
         user_interest_2: u8,
         user_interest_3: u8,
         user_gender: u8,
-        // DADOS PUBLICOS DA CAMPANHA (target audience)
+        // DADOS PÚBLICOS DA CAMPANHA (target audience)
         ad_min_age: u8,
         ad_max_age: u8,
         ad_target_location: u8,
@@ -127,51 +127,51 @@ pub contract AdTargeting {
         ad_target_gender: u8,
     ) -> Field {
         // ============================================
-        // VERIFICACAO DE COMPATIBILIDADE (PRIVATE)
+        // VERIFICAÇÃO DE COMPATIBILIDADE (PRIVATE)
         // ============================================
         
         // 1. Verifica IDADE
         let age_match = (user_age >= ad_min_age) & (user_age <= ad_max_age);
 
-        // 2. Verifica LOCALIZACAO (0 = qualquer localizacao)
+        // 2. Verifica LOCALIZAÇÃO (0 = qualquer localização)
         let location_match = (ad_target_location == 0) | (user_location == ad_target_location);
 
-        // 3. Verifica PROFISSAO (0 = qualquer profissao)
+        // 3. Verifica PROFISSÃO (0 = qualquer profissão)
         let profession_match = (ad_target_profession == 0) | (user_profession == ad_target_profession);
 
-        // 4. Verifica INTERESSE (usuario tem ate 3 interesses)
+        // 4. Verifica INTERESSE (usuário tem até 3 interesses)
         let interest_match = (user_interest_1 == ad_required_interest)
             | (user_interest_2 == ad_required_interest)
             | (user_interest_3 == ad_required_interest);
 
-        // 5. Verifica GENERO (0 = qualquer genero)
+        // 5. Verifica GÊNERO (0 = qualquer gênero)
         let gender_match = (ad_target_gender == 0) | (user_gender == ad_target_gender);
 
         // ============================================
         // COMPATIBILIDADE FINAL
         // ============================================
-        // Todas as condicoes devem ser verdadeiras para match
+        // Todas as condições devem ser verdadeiras para match
         let is_compatible = age_match & interest_match & location_match & gender_match & profession_match;
 
         // ============================================
         // ANTI-FRAUDE: NULLIFIER
         // ============================================
-        // Gera um nullifier unico para (usuario + anuncio)
-        // Previne que o mesmo usuario seja contado multiplas vezes
+        // Gera um nullifier único para (usuário + anúncio)
+        // Previne que o mesmo usuário seja contado múltiplas vezes
         let msg_sender_keys = get_public_keys(context.msg_sender().unwrap());
         let secret = context.request_nsk_app(msg_sender_keys.npk_m.hash());
         let nullifier = poseidon2_hash([ad_id, context.msg_sender().unwrap().to_field(), secret]);
         context.push_nullifier(nullifier);
 
         // ============================================
-        // REGISTRO DE METRICAS (PUBLIC)
+        // REGISTRO DE MÉTRICAS (PUBLIC)
         // ============================================
-        // Incrementa contador de impressoes (sempre)
+        // Incrementa contador de impressões (sempre)
         AdTargeting::at(context.this_address())
             .record_impression(ad_id)
             .enqueue(&mut context);
 
-        // Se compativel, incrementa matches. Senao, incrementa rejeicoes
+        // Se compatível, incrementa matches. Senão, incrementa rejeições
         if is_compatible {
             AdTargeting::at(context.this_address())
                 .record_match(ad_id)
@@ -185,9 +185,9 @@ pub contract AdTargeting {
         // ============================================
         // RETORNO
         // ============================================
-        // Retorna 1 se compativel, 0 se nao
-        // IMPORTANTE: Apenas este boolean e revelado publicamente
-        // Os dados do usuario permanecem privados
+        // Retorna 1 se compatível, 0 se não
+        // IMPORTANTE: Apenas este boolean é revelado publicamente
+        // Os dados do usuário permanecem privados
         if is_compatible {
             1
         } else {
@@ -196,7 +196,7 @@ pub contract AdTargeting {
     }
 
     /**
-     * Funcao PUBLICA: Registra uma impressao do anuncio
+     * Função PÚBLICA: Registra uma impressão do anúncio
      */
     #[external("public")]
     #[internal]
@@ -206,7 +206,7 @@ pub contract AdTargeting {
     }
 
     /**
-     * Funcao PUBLICA: Registra um match bem-sucedido
+     * Função PÚBLICA: Registra um match bem-sucedido
      */
     #[external("public")]
     #[internal]
@@ -216,7 +216,7 @@ pub contract AdTargeting {
     }
 
     /**
-     * Funcao PUBLICA: Registra uma rejeicao (nao compativel)
+     * Função PÚBLICA: Registra uma rejeição (não compatível)
      */
     #[external("public")]
     #[internal]
@@ -226,7 +226,7 @@ pub contract AdTargeting {
     }
 
     /**
-     * Funcao PUBLICA: Consulta estatisticas de um anuncio
+     * Função PÚBLICA: Consulta estatísticas de um anúncio
      * @return (impressions, matches, rejections)
      */
     #[external("utility")]
@@ -238,7 +238,7 @@ pub contract AdTargeting {
     }
 
     /**
-     * Funcao PUBLICA: Calcula taxa de match (Match Rate)
+     * Função PÚBLICA: Calcula taxa de match (Match Rate)
      * Retorna a porcentagem multiplicada por 10000 (ex: 2500 = 25.00%)
      */
     #[external("utility")]
@@ -255,8 +255,8 @@ pub contract AdTargeting {
     }
 
     /**
-     * Funcao PUBLICA: Calcula eficiencia do targeting
-     * Quanto maior, melhor o targeting (menos desperdicio)
+     * Função PÚBLICA: Calcula eficiência do targeting
+     * Quanto maior, melhor o targeting (menos desperdício)
      */
     #[external("utility")]
     unconstrained fn get_targeting_efficiency(ad_id: Field) -> Field {
@@ -267,7 +267,7 @@ pub contract AdTargeting {
         if total == 0 {
             0
         } else {
-            // Retorna eficiencia em %
+            // Retorna eficiência em %
             (matches * 10000) / total
         }
     }

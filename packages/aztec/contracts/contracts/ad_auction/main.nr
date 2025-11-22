@@ -1,14 +1,14 @@
 use dep::aztec::macros::aztec;
 
 /**
- * Contrato de Leilao de Anuncios com Privacidade
+ * Contrato de Leilão de Anúncios com Privacidade
  * 
  * Features:
  * - Anunciantes fazem lances (bids) para aparecer primeiro
- * - Verificacao privada de compatibilidade (Aztec)
+ * - Verificação privada de compatibilidade (Aztec)
  * - Pagamentos em stablecoins (USDC via Circle)
  * - Anti-fraude via World ID
- * - Sistema de ranking: bid   quality score
+ * - Sistema de ranking: bid × quality score
  */
 
 #[aztec]
@@ -20,11 +20,11 @@ pub contract AdAuction {
     use dep::aztec::protocol_types::{
         address::AztecAddress,
         hash::poseidon2_hash,
-        traits::{Hash, ToField},
+        traits::ToField,
     };
     use dep::aztec::state_vars::{Map, PublicMutable};
 
-    // Constantes para modelo de precificacao
+    // Constantes para modelo de precificação
     global PRECISION: Field = 1000000; // 6 casas decimais
 
     #[storage]
@@ -33,13 +33,13 @@ pub contract AdAuction {
         
         // Dados da campanha
         ad_bid_per_click: Map<Field, PublicMutable<Field, Context>, Context>,      // Quanto anunciante paga por clique (em USDC)
-        ad_bid_per_impression: Map<Field, PublicMutable<Field, Context>, Context>, // Quanto paga por impressao
-        ad_daily_budget: Map<Field, PublicMutable<Field, Context>, Context>,       // Budget diario
+        ad_bid_per_impression: Map<Field, PublicMutable<Field, Context>, Context>, // Quanto paga por impressão
+        ad_daily_budget: Map<Field, PublicMutable<Field, Context>, Context>,       // Budget diário
         ad_total_budget: Map<Field, PublicMutable<Field, Context>, Context>,       // Budget total
         ad_spent_today: Map<Field, PublicMutable<Field, Context>, Context>,        // Gasto hoje
         ad_total_spent: Map<Field, PublicMutable<Field, Context>, Context>,        // Gasto total
         
-        // Metricas
+        // Métricas
         ad_impressions: Map<Field, PublicMutable<Field, Context>, Context>,
         ad_clicks: Map<Field, PublicMutable<Field, Context>, Context>,
         ad_conversions: Map<Field, PublicMutable<Field, Context>, Context>,
@@ -47,7 +47,7 @@ pub contract AdAuction {
         // Quality Score (calculado off-chain via Chainlink)
         ad_quality_score: Map<Field, PublicMutable<Field, Context>, Context>,      // 0-1000
         
-        // Endereco do token USDC
+        // Endereço do token USDC
         usdc_token: PublicMutable<AztecAddress, Context>,
         
         // Treasury (onde vai o revenue)
@@ -82,8 +82,8 @@ pub contract AdAuction {
         daily_budget: Field,          // Em USDC
         total_budget: Field           // Em USDC
     ) {
-        // Verifica se quem esta chamando e o admin ou tem permissao
-        // (Voc  pode adicionar controle de acesso aqui)
+        // Verifica se quem está chamando é o admin ou tem permissão
+        // (Você pode adicionar controle de acesso aqui)
         
         storage.ad_bid_per_click.at(ad_id).write(bid_per_click);
         storage.ad_bid_per_impression.at(ad_id).write(bid_per_impression);
@@ -91,32 +91,32 @@ pub contract AdAuction {
         storage.ad_total_budget.at(ad_id).write(total_budget);
         storage.ad_spent_today.at(ad_id).write(0);
         storage.ad_total_spent.at(ad_id).write(0);
-        storage.ad_quality_score.at(ad_id).write(500); // Score inicial medio (50%)
+        storage.ad_quality_score.at(ad_id).write(500); // Score inicial médio (50%)
     }
 
     /**
-     * Funcao PRIVADA: Verifica compatibilidade e registra impressao
+     * Função PRIVADA: Verifica compatibilidade e registra impressão
      * 
-     * Retorna o ranking score (bid   quality) para ordenacao no frontend
+     * Retorna o ranking score (bid × quality) para ordenação no frontend
      */
     #[external("private")]
     fn check_ad_and_get_score(
         ad_id: Field,
-        // Dados do usuario (privados)
+        // Dados do usuário (privados)
         user_age: u8,
         user_interest_1: u8,
         user_interest_2: u8,
         user_interest_3: u8,
         user_location: u8,
         user_gender: u8,
-        // Criterios do anuncio
+        // Critérios do anúncio
         ad_min_age: u8,
         ad_max_age: u8,
         ad_required_interest: u8,
         ad_target_location: u8,
         ad_target_gender: u8,
     ) -> Field {
-        // Verifica compatibilidade (mesma logica do contrato anterior)
+        // Verifica compatibilidade (mesma lógica do contrato anterior)
         let age_match = (user_age >= ad_min_age) & (user_age <= ad_max_age);
         let interest_match = (user_interest_1 == ad_required_interest)
             | (user_interest_2 == ad_required_interest)
@@ -132,12 +132,12 @@ pub contract AdAuction {
         context.push_nullifier(nullifier);
 
         if is_compatible {
-            // Registra impressao e cobra do anunciante
+            // Registra impressão e cobra do anunciante
             AdAuction::at(context.this_address())
                 .record_impression_and_charge(ad_id)
                 .enqueue(&mut context);
             
-            // Retorna score para ranking (sera usado no frontend)
+            // Retorna score para ranking (será usado no frontend)
             1
         } else {
             0
@@ -145,7 +145,7 @@ pub contract AdAuction {
     }
 
     /**
-     * Funcao PUBLICA: Registra impressao e cobra do anunciante
+     * Função PÚBLICA: Registra impressão e cobra do anunciante
      */
     #[external("public")]
     #[internal]
@@ -157,34 +157,23 @@ pub contract AdAuction {
         let total_spent = storage.ad_total_spent.at(ad_id).read();
 
         // Verifica se ainda tem budget
-        // Convert Fields to u128 for comparison
-        let new_spent_today = spent_today + bid_per_impression;
-        let new_total_spent = total_spent + bid_per_impression;
-        
-        // Check daily budget: convert to u128 for comparison
-        let new_spent_today_u128 = new_spent_today as u128;
-        let daily_budget_u128 = daily_budget as u128;
-        assert(new_spent_today_u128 <= daily_budget_u128, "Daily budget exceeded");
-        
-        // Check total budget
-        let new_total_spent_u128 = new_total_spent as u128;
-        let total_budget_u128 = total_budget as u128;
-        assert(new_total_spent_u128 <= total_budget_u128, "Total budget exceeded");
+        assert(spent_today + bid_per_impression <= daily_budget, "Daily budget exceeded");
+        assert(total_spent + bid_per_impression <= total_budget, "Total budget exceeded");
 
         // Atualiza gastos
         storage.ad_spent_today.at(ad_id).write(spent_today + bid_per_impression);
         storage.ad_total_spent.at(ad_id).write(total_spent + bid_per_impression);
 
-        // Incrementa contador de impressoes
+        // Incrementa contador de impressões
         let impressions = storage.ad_impressions.at(ad_id).read();
         storage.ad_impressions.at(ad_id).write(impressions + 1);
 
-        // Nota: A transfer ncia real de USDC seria feita em outro contrato
-        // ou via bridge, pois Aztec ainda nao suporta tokens ERC20 nativamente
+        // Nota: A transferência real de USDC seria feita em outro contrato
+        // ou via bridge, pois Aztec ainda não suporta tokens ERC20 nativamente
     }
 
     /**
-     * Funcao PUBLICA: Registra clique e cobra do anunciante
+     * Função PÚBLICA: Registra clique e cobra do anunciante
      * 
      * Deve ser chamado com World ID proof para prevenir fraude
      */
@@ -200,19 +189,8 @@ pub contract AdAuction {
         let total_spent = storage.ad_total_spent.at(ad_id).read();
 
         // Verifica budget
-        // Convert Fields to u128 for comparison
-        let new_spent_today = spent_today + bid_per_click;
-        let new_total_spent = total_spent + bid_per_click;
-        
-        // Check daily budget: convert to u128 for comparison
-        let new_spent_today_u128 = new_spent_today as u128;
-        let daily_budget_u128 = daily_budget as u128;
-        assert(new_spent_today_u128 <= daily_budget_u128, "Daily budget exceeded");
-        
-        // Check total budget
-        let new_total_spent_u128 = new_total_spent as u128;
-        let total_budget_u128 = total_budget as u128;
-        assert(new_total_spent_u128 <= total_budget_u128, "Total budget exceeded");
+        assert(spent_today + bid_per_click <= daily_budget, "Daily budget exceeded");
+        assert(total_spent + bid_per_click <= total_budget, "Total budget exceeded");
 
         // Atualiza gastos
         storage.ad_spent_today.at(ad_id).write(spent_today + bid_per_click);
@@ -222,8 +200,8 @@ pub contract AdAuction {
         let clicks = storage.ad_clicks.at(ad_id).read();
         storage.ad_clicks.at(ad_id).write(clicks + 1);
 
-        // Nota: Verificacao do World ID proof seria feita aqui
-        // para garantir que e um humano real clicando
+        // Nota: Verificação do World ID proof seria feita aqui
+        // para garantir que é um humano real clicando
     }
 
     /**
@@ -232,21 +210,19 @@ pub contract AdAuction {
     #[external("public")]
     fn update_quality_score(ad_id: Field, quality_score: Field) {
         assert(context.msg_sender().unwrap().eq(storage.admin.read()), "Only admin");
-        // Convert to u64 for comparison (quality_score is 0-1000, fits in u64)
-        let quality_score_u64 = quality_score as u64;
-        assert(quality_score_u64 <= 1000, "Score must be 0-1000");
+        assert(quality_score <= 1000, "Score must be 0-1000");
         
         storage.ad_quality_score.at(ad_id).write(quality_score);
     }
 
     /**
-     * Reset gastos diarios (chamado por Chainlink Automation a cada dia)
+     * Reset gastos diários (chamado por Chainlink Automation a cada dia)
      */
     #[external("public")]
     fn reset_daily_budgets(ad_ids: [Field; 10]) {
         assert(context.msg_sender().unwrap().eq(storage.admin.read()), "Only admin");
         
-        // Reset gastos diarios para todos os anuncios
+        // Reset gastos diários para todos os anúncios
         for i in 0..10 {
             if ad_ids[i] != 0 {
                 storage.ad_spent_today.at(ad_ids[i]).write(0);
@@ -255,7 +231,7 @@ pub contract AdAuction {
     }
 
     /**
-     * VIEWS: Consulta dados publicos
+     * VIEWS: Consulta dados públicos
      */
     
     #[external("utility")]
@@ -280,8 +256,8 @@ pub contract AdAuction {
         let bid = storage.ad_bid_per_click.at(ad_id).read();
         let quality = storage.ad_quality_score.at(ad_id).read();
         
-        // Score final = bid   (quality/1000)
-        // Exemplo: bid=$1.00, quality=750   score = 1.00   0.75 = 0.75
+        // Score final = bid × (quality/1000)
+        // Exemplo: bid=$1.00, quality=750 → score = 1.00 × 0.75 = 0.75
         (bid * quality) / 1000
     }
 
