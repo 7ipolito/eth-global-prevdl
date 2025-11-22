@@ -1,6 +1,0 @@
-[?9001h[?1004h[?25l[2J[m[35m[2m[H$[m[1m[2m[1Cnext dev
-]0;C:\WINDOWS\system32\cmd.exe[?25h[22m]0;next-server (v15.2.3)   [38;2;173;127;168m[1m▲ Next.js 15.2.3
-[?25l[m   - Local:        http://localhost:3000
-   - Network:      http://10.140.158.173:3000
-   - Environments: .env.local[7;1H [32m[1m✓[m Starting...
-[?25h
