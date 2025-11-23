@@ -24,6 +24,72 @@ import {
 // Lazy imports for Aztec (only loaded when needed)
 // This prevents errors in LOCAL mode where Aztec packages aren't needed
 
+/**
+ * Helper function to dynamically import sponsored_fpc module
+ * This import may fail in certain build contexts (e.g., Vite dev server)
+ * and that's okay - it's only needed for sandbox/devnet modes, not local mode
+ */
+async function importSponsoredFPC() {
+  // These imports are wrapped in try-catch and may not exist in all contexts
+  // Vite may try to analyze them, but they will fail gracefully at runtime if needed
+  const path1 = '../../dist/aztec/contracts/src/utils/sponsored_fpc.js';
+  const path2 = '../../aztec/contracts/src/utils/sponsored_fpc.js';
+  
+  // Try both paths, return null if neither works
+  for (const importPath of [path1, path2]) {
+    try {
+      // Dynamic import - Vite may warn but won't fail the build
+      const module = await import(/* @vite-ignore */ importPath);
+      return module;
+    } catch (err) {
+      // Continue to next path
+      continue;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Helper function to dynamically import AdTargeting contract
+ * This import may fail in certain build contexts (e.g., Vite dev server)
+ */
+async function importAdTargetingContract() {
+  const path1 = '../../dist/aztec/contracts/src/artifacts/AdTargeting.js';
+  const path2 = '../../aztec/contracts/src/artifacts/AdTargeting.js';
+  
+  for (const importPath of [path1, path2]) {
+    try {
+      const module = await import(/* @vite-ignore */ importPath);
+      return module;
+    } catch (err) {
+      continue;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Helper function to dynamically import AdAuction contract
+ * This import may fail in certain build contexts (e.g., Vite dev server)
+ */
+async function importAdAuctionContract() {
+  const path1 = '../../dist/aztec/contracts/src/artifacts/AdAuction.js';
+  const path2 = '../../aztec/contracts/src/artifacts/AdAuction.js';
+  
+  for (const importPath of [path1, path2]) {
+    try {
+      const module = await import(/* @vite-ignore */ importPath);
+      return module;
+    } catch (err) {
+      continue;
+    }
+  }
+  
+  return null;
+}
+
 export class PrevDLSDK {
   private config: SDKConfig;
   private aztecWallet?: any; // TestWallet (lazy loaded)
@@ -83,9 +149,18 @@ export class PrevDLSDK {
       });
 
       // Register Sponsored FPC for fee payments
+      // Note: This is only needed for sandbox/devnet modes, not local mode
+      // The import is wrapped in try-catch to handle cases where the file doesn't exist
+      // (e.g., when running in Vite dev server or when contracts aren't built)
       try {
         const { SponsoredFPCContractArtifact } = await import('@aztec/noir-contracts.js/SponsoredFPC');
-        const { getSponsoredFPCInstance } = await import('../../aztec/contracts/src/utils/sponsored_fpc.js');
+        const sponsoredFPCModule = await importSponsoredFPC();
+        
+        if (!sponsoredFPCModule) {
+          throw new Error('Could not find sponsored_fpc module');
+        }
+        
+        const { getSponsoredFPCInstance } = sponsoredFPCModule;
         const sponsoredFPC = await getSponsoredFPCInstance();
         await this.aztecWallet.registerContract({
           instance: sponsoredFPC,
@@ -111,7 +186,13 @@ export class PrevDLSDK {
         try {
           const deployMethod = await this.aztecAccount.getDeployMethod();
       const { SponsoredFeePaymentMethod } = await import('@aztec/aztec.js/fee/testing');
-      const { getSponsoredFPCInstance } = await import('../../aztec/contracts/src/utils/sponsored_fpc.js');
+      const sponsoredFPCModule = await importSponsoredFPC();
+      
+      if (!sponsoredFPCModule) {
+        throw new Error('Could not find sponsored_fpc module');
+      }
+      
+      const { getSponsoredFPCInstance } = sponsoredFPCModule;
           const sponsoredFPC = await getSponsoredFPCInstance();
           // @ts-ignore - Aztec type compatibility issue
           const paymentMethod = new SponsoredFeePaymentMethod(sponsoredFPC.address);
@@ -175,8 +256,15 @@ export class PrevDLSDK {
 
       // Try to import contract artifacts
       // These will be generated after running yarn codegen
-      const { AdTargetingContract } = await import('../../aztec/contracts/src/artifacts/AdTargeting.js');
-      const { AdAuctionContract } = await import('../../aztec/contracts/src/artifacts/AdAuction.js');
+      const adTargetingModule = await importAdTargetingContract();
+      const adAuctionModule = await importAdAuctionContract();
+      
+      if (!adTargetingModule || !adAuctionModule) {
+        throw new Error('Could not load contract artifacts. Make sure contracts are compiled and artifacts are generated.');
+      }
+      
+      const { AdTargetingContract } = adTargetingModule;
+      const { AdAuctionContract } = adAuctionModule;
 
       if (this.config.contracts.adTargeting && this.config.contracts.adTargeting.trim() !== '') {
         try {
