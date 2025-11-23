@@ -17,7 +17,6 @@ import {
   encryptAndEncodeUserProfile,
   isEncryptionSupported,
 } from '../utils/encryption';
-import { createRequire } from 'module';
 
 // Types for ethers (to avoid hard dependency)
 type EthersProvider = any;
@@ -40,6 +39,7 @@ export class OasisAdapter {
   private config: OasisConfig;
   private encryptionRequired: boolean;
   private ethers: any;
+  private ethersLoadPromise: Promise<any> | null = null;
   
   // Helper para converter valores do ethers (compatível com v5 e v6)
   private toNumber(value: any): number {
@@ -48,6 +48,36 @@ export class OasisAdapter {
     if (value?.toNumber) return value.toNumber(); // ethers v5
     if (value?.toString) return Number(value.toString()); // ethers v6
     return Number(value);
+  }
+
+  /**
+   * Carrega ethers dinamicamente (compatível com navegador e Node.js)
+   */
+  private async ensureEthersLoaded(): Promise<any> {
+    if (this.ethers) {
+      return this.ethers;
+    }
+
+    if (this.ethersLoadPromise) {
+      return this.ethersLoadPromise;
+    }
+
+    this.ethersLoadPromise = (async () => {
+      try {
+        // Tentar import dinâmico (funciona no navegador e Node.js com ES modules)
+        const ethersModule = await import('ethers');
+        // ethers v6 não tem default export, usa o módulo diretamente
+        // ethers v5 pode ter default ou namespace
+        this.ethers = (ethersModule as any).default || ethersModule;
+        return this.ethers;
+      } catch (error: any) {
+        throw new Error(
+          `ethers.js is required for Oasis adapter. Please install: npm install ethers or bun add ethers (Error: ${error.message})`
+        );
+      }
+    })();
+
+    return this.ethersLoadPromise;
   }
 
   // ABI do contrato PrevDLAds
@@ -83,15 +113,9 @@ export class OasisAdapter {
   ];
 
   constructor(config: OasisConfig) {
-    // Carregar ethers dinamicamente (compatível com ES modules)
-    try {
-      const require = createRequire(import.meta.url);
-      this.ethers = require('ethers');
-    } catch (error: any) {
-      throw new Error(
-        `ethers.js is required for Oasis adapter. Please install: bun add ethers (Error: ${error.message})`
-      );
-    }
+    // ethers será carregado dinamicamente quando necessário
+    // Não inicializar aqui para evitar problemas no navegador
+    this.ethers = null as any;
 
     this.config = {
       requireEncryption: true, // Por padrão, força criptografia
@@ -121,23 +145,39 @@ export class OasisAdapter {
       );
     }
 
+    // Inicialização assíncrona será feita no método initialize()
+    // Não inicializar provider/signer/contract aqui para evitar problemas no navegador
+  }
+
+  /**
+   * Inicializa o adapter (deve ser chamado após o construtor)
+   * Isso permite carregar ethers de forma assíncrona
+   */
+  async initialize(): Promise<void> {
+    // Carregar ethers primeiro
+    await this.ensureEthersLoaded();
+
     // Inicializar provider (compatível com ethers v5 e v6)
     // ethers v6 não tem providers, usa JsonRpcProvider diretamente
     if (this.ethers.providers) {
       // ethers v5
-      this.provider = new this.ethers.providers.JsonRpcProvider(config.rpcUrl);
+      this.provider = new this.ethers.providers.JsonRpcProvider(this.config.rpcUrl);
     } else if (this.ethers.JsonRpcProvider) {
       // ethers v6
-      this.provider = new this.ethers.JsonRpcProvider(config.rpcUrl);
+      this.provider = new this.ethers.JsonRpcProvider(this.config.rpcUrl);
     } else {
       throw new Error('Versão do ethers não suportada. Use ethers v5 ou v6');
     }
 
     // Inicializar signer
-    if (config.wallet) {
-      this.signer = config.wallet;
-    } else if (config.privateKey) {
-      this.signer = new this.ethers.Wallet(config.privateKey, this.provider);
+    if (this.config.wallet) {
+      this.signer = this.config.wallet;
+      // Verificar se o signer é válido (pode não estar totalmente inicializado ainda)
+      if (!this.signer) {
+        throw new Error('Wallet provided but signer is null or undefined');
+      }
+    } else if (this.config.privateKey) {
+      this.signer = new this.ethers.Wallet(this.config.privateKey, this.provider);
     } else {
       throw new Error('Either wallet or privateKey must be provided');
     }
@@ -145,7 +185,7 @@ export class OasisAdapter {
     // Inicializar contrato
     try {
       this.contract = new this.ethers.Contract(
-        config.contractAddress,
+        this.config.contractAddress,
         OasisAdapter.CONTRACT_ABI,
         this.signer
       );
@@ -208,6 +248,9 @@ export class OasisAdapter {
     userProfile: UserProfile,
     userAddress: string
   ): Promise<string> {
+    // Garantir que ethers está carregado
+    await this.ensureEthersLoaded();
+    
     // 🔐 CRIPTOGRAFIA IMEDIATA - Minimiza tempo em texto claro
     // Dados são criptografados assim que recebidos do frontend
     // Isso reduz o risco de interceptação no mesmo processo
@@ -630,6 +673,15 @@ export class OasisAdapter {
    * Obtém endereço da wallet conectada
    */
   async getWalletAddress(): Promise<string> {
+    if (!this.signer) {
+      throw new Error('Signer not initialized. Make sure wallet is properly configured.');
+    }
+    
+    // Verificar se o signer tem o método getAddress
+    if (typeof this.signer.getAddress !== 'function') {
+      throw new Error('Signer does not have getAddress method. Invalid signer type.');
+    }
+    
     return await this.signer.getAddress();
   }
 

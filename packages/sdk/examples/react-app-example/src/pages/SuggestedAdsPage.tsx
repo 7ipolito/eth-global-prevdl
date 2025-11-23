@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Megaphone, User, ArrowRight, Lock } from "lucide-react";
-import { Ads } from "../../../../dist/sdk/src/components/Ads";
+import { Ads } from "../../../../dist/components/Ads";
 import { UserProfile, Ad, Location, Profession, Interest } from "../types";
 import "./SuggestedAdsPage.css";
 

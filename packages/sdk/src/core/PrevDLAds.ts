@@ -2,13 +2,13 @@
  * PrevDL Ads - Privacy-Preserving Ad Targeting SDK
  * 
  * Main class for interacting with PREVDL ad targeting system
- * Supports both Aztec Network and Oasis Sapphire
+ * Uses Oasis Sapphire for production or local mocks for development
  * 
  * 🔐 SECURITY: When using Oasis Sapphire, all data is encrypted before sending
  */
 
-import { PrevDLSDK } from '../sdk';
 import { OasisAdapter } from './OasisAdapter';
+import { getMatchingAds, simulateMatch, mockAds } from '../mocks';
 import type {
   UserProfile,
   Ad,
@@ -19,7 +19,6 @@ import type {
 } from '../types';
 
 export class PrevDLAds {
-  private sdk?: PrevDLSDK;
   public oasisAdapter?: OasisAdapter; // Público para permitir testes
   private clientId: string;
   private environment: PrevDLEnvironment;
@@ -34,21 +33,24 @@ export class PrevDLAds {
     this.clientId = config.clientId;
     this.environment = config.environment || 'sandbox';
 
+    // Debug: log da configuração recebida
+    console.log('🔧 PrevDLAds Config:', {
+      clientId: config.clientId,
+      environment: config.environment,
+      hasOasis: !!config.oasis,
+      oasisContract: config.oasis?.contractAddress,
+      oasisRpc: config.oasis?.rpcUrl,
+      hasWallet: !!config.oasis?.wallet,
+    });
+
     // 🔄 LÓGICA BASEADA NO ENVIRONMENT
-    // Se environment === 'local' → usar dados mockados (Aztec SDK)
+    // Se environment === 'local' → usar dados mockados (sem blockchain)
     // Se environment !== 'local' → usar Oasis Sapphire (se config.oasis fornecido)
     
     if (config.environment === 'local') {
-      // Ambiente local = dados mockados (Aztec SDK)
-      const sdkMode = 'local';
-      this.sdk = new PrevDLSDK({
-        mode: sdkMode,
-        aztecNodeUrl: config.aztecNodeUrl,
-        adTargetingAddress: config.adTargetingAddress,
-        adAuctionAddress: config.adAuctionAddress,
-      });
+      // Ambiente local = dados mockados (sem blockchain)
       this.useOasis = false;
-      console.log('✅ Using Aztec Network (local mode - mock data)');
+      console.log('✅ Using local mock data (no blockchain)');
     } else if (config.oasis) {
       // Ambiente dev/sandbox/production = Oasis Sapphire (se config fornecido)
       this.useOasis = true;
@@ -60,17 +62,14 @@ export class PrevDLAds {
         requireEncryption: config.oasis.requireEncryption ?? true, // Por padrão, força criptografia
       });
       console.log(`✅ Using Oasis Sapphire with mandatory encryption (${this.environment} mode)`);
+      console.log(`   Contract: ${config.oasis.contractAddress}`);
+      console.log(`   RPC: ${config.oasis.rpcUrl}`);
     } else {
-      // Fallback: se não é local e não tem Oasis config, usar Aztec
-    const sdkMode = this.environment === 'production' ? 'devnet' : this.environment as 'local' | 'sandbox' | 'devnet';
-    this.sdk = new PrevDLSDK({
-      mode: sdkMode,
-      aztecNodeUrl: config.aztecNodeUrl,
-      adTargetingAddress: config.adTargetingAddress,
-      adAuctionAddress: config.adAuctionAddress,
-    });
-      console.log(`✅ Using Aztec Network (${this.environment} mode)`);
-      console.warn('⚠️  Oasis config not provided. For Oasis Sapphire, provide config.oasis');
+      // Se não é local e não tem Oasis config, usar modo local como fallback
+      console.warn('⚠️  Oasis config not provided. Falling back to local mode (mock data).');
+      console.warn('   To use Oasis Sapphire, provide config.oasis with contractAddress, rpcUrl, and wallet.');
+      this.useOasis = false;
+      console.log('✅ Using local mock data (no blockchain) as fallback');
     }
   }
 
@@ -82,15 +81,18 @@ export class PrevDLAds {
 
     try {
       if (this.useOasis && this.oasisAdapter) {
+        // Inicializar o OasisAdapter (carrega ethers dinamicamente)
+        await this.oasisAdapter.initialize();
+        
         // Verificar se criptografia está habilitada
         if (this.oasisAdapter.isEncryptionRequired()) {
           console.log('🔐 Encryption is MANDATORY - all data will be encrypted');
         }
-        const walletAddress = await this.oasisAdapter.getWalletAddress();
-        console.log(`✅ Connected to Oasis Sapphire (Wallet: ${walletAddress})`);
-      } else if (this.sdk) {
-        // SDK auto-initializes on first use
-        console.log(`✅ PrevDL Ads SDK initialized in ${this.environment} mode`);
+        
+        console.log('✅ Oasis adapter initialized');
+      } else {
+        // Modo local - sem inicialização necessária
+        console.log(`✅ PrevDL Ads SDK initialized in local mode (mock data)`);
       }
       
       this.initialized = true;
@@ -122,10 +124,9 @@ export class PrevDLAds {
       // Criptografia obrigatória - dados nunca são enviados em texto claro
       console.log('🔐 Encrypting user profile before sending to Oasis Sapphire...');
       return await this.oasisAdapter.setUserProfile(userProfile, userAddress);
-    } else if (this.sdk) {
-      // Modo Aztec (não requer endereço)
-      console.warn('⚠️  Using Aztec mode - encryption handled by Aztec network');
-      // Aztec SDK não tem método setUserProfile, apenas matching
+    } else {
+      // Modo local - não requer envio ao blockchain
+      console.log('ℹ️  Local mode: user profile stored locally (not sent to blockchain)');
       return;
     }
   }
@@ -170,10 +171,12 @@ export class PrevDLAds {
           matches: ad.matches, // Já convertido para número
           rankingScore: ad.rankingScore, // Já convertido para número
         }));
-      } else if (this.sdk && userProfile) {
-        return await this.sdk.getMatchingAds(userProfile);
+      } else if (userProfile) {
+        // Modo local - usar mocks
+        console.log('ℹ️  Local mode: using mock data for matching');
+        return getMatchingAds(userProfile);
       } else {
-        throw new Error('Invalid configuration');
+        throw new Error('userProfile is required in local mode, or userAddress is required in Oasis mode');
       }
     } catch (error: any) {
       console.error('❌ Error getting targeted ads:', error.message);
@@ -211,10 +214,13 @@ export class PrevDLAds {
             genderMatch: result.genderMatch,
           },
         };
-      } else if (this.sdk) {
-      return await this.sdk.checkAdMatch(userProfile, adId);
       } else {
-        throw new Error('Invalid configuration');
+        // Modo local - usar mocks
+        const ad = mockAds.find(a => a.id === adId);
+        if (!ad) {
+          throw new Error(`Ad with id ${adId} not found`);
+        }
+        return simulateMatch(userProfile, ad);
       }
     } catch (error: any) {
       console.error('❌ Error checking ad match:', error.message);
@@ -233,10 +239,16 @@ export class PrevDLAds {
     }
 
     try {
-      if (this.sdk) {
-      return await this.sdk.getAllAds();
+      if (this.useOasis && this.oasisAdapter) {
+        // Para Oasis, precisamos buscar campanhas ativas e converter
+        const campaignIds = await this.oasisAdapter.getActiveCampaigns();
+        const campaigns = await Promise.all(
+          campaignIds.map(id => this.getCampaign(id.toString()))
+        );
+        return campaigns;
       } else {
-        throw new Error('SDK not initialized. Cannot get all ads.');
+        // Modo local - retornar todos os mocks
+        return mockAds;
       }
     } catch (error: any) {
       console.error('❌ Error getting all ads:', error.message);
@@ -265,10 +277,19 @@ export class PrevDLAds {
       if (this.useOasis && this.oasisAdapter) {
         const campaignId = parseInt(adId);
         return await this.oasisAdapter.getCampaignStats(campaignId);
-      } else if (this.sdk) {
-      return await this.sdk.getCampaignStats(adId);
       } else {
-        throw new Error('Invalid configuration: SDK not initialized');
+        // Modo local - retornar stats mockados
+        const ad = mockAds.find(a => a.id === adId);
+        if (!ad) {
+          throw new Error(`Ad with id ${adId} not found`);
+        }
+        return {
+          impressions: ad.impressions,
+          clicks: ad.clicks,
+          matches: ad.matches,
+          matchRate: ad.matches > 0 ? (ad.matches / ad.impressions) * 100 : 0,
+          ctr: ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0,
+        };
       }
     } catch (error: any) {
       console.error('❌ Error getting campaign stats:', error.message);

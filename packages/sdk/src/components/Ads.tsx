@@ -49,7 +49,18 @@ export const Ads: React.FC<AdsProps> = ({
       setIsLoading(true);
       setError(null);
 
-      const matchedAds = await prevdlAds.getTargetedAds(userProfile);
+      // Se estiver usando Oasis, precisamos do endereço da wallet
+      let userAddress: string | undefined;
+      if (prevdlAds.oasisAdapter) {
+        try {
+          userAddress = await prevdlAds.oasisAdapter.getWalletAddress();
+        } catch (err) {
+          console.warn('Could not get wallet address:', err);
+          // Continuar sem endereço - pode ser modo local
+        }
+      }
+
+      const matchedAds = await prevdlAds.getTargetedAds(userProfile, userAddress);
       const limitedAds = matchedAds.slice(0, maxAds);
       
       setAds(limitedAds);

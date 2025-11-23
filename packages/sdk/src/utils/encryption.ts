@@ -57,10 +57,12 @@ export async function deriveKeyFromWallet(
   );
   
   // Derivar chave usando PBKDF2
+  // Criar um novo ArrayBuffer a partir do Uint8Array para garantir compatibilidade de tipos
+  const saltBuffer = new Uint8Array(keySalt).buffer;
   const derivedKey = await crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: keySalt,
+      salt: saltBuffer as ArrayBuffer, // Cast explícito para ArrayBuffer
       iterations: 100000, // Número de iterações (ajustável)
       hash: 'SHA-256',
     },
@@ -129,11 +131,11 @@ export async function encryptUserProfile(
   
   // Converter para hex strings
   const encrypted = arrayBufferToHex(encryptedBuffer);
-  const ivHex = arrayBufferToHex(iv);
+  const ivHex = arrayBufferToHex(iv.buffer); // Converter Uint8Array para ArrayBuffer
   
   // Gerar nonce adicional para segurança
   const nonce = crypto.getRandomValues(new Uint8Array(32));
-  const nonceHex = arrayBufferToHex(nonce);
+  const nonceHex = arrayBufferToHex(nonce.buffer); // Converter Uint8Array para ArrayBuffer
   
   return {
     encrypted,
@@ -202,8 +204,9 @@ export async function encodeUserProfileForContract(profile: UserProfile): Promis
   
   // Tentar usar ethers se disponível
   try {
-    const ethers = await import('ethers');
-    const encoded = ethers.utils.defaultAbiCoder.encode(
+    const { AbiCoder } = await import('ethers');
+    const abiCoder = AbiCoder.defaultAbiCoder();
+    const encoded = abiCoder.encode(
       ['uint8', 'uint8', 'uint8', 'uint8[3]', 'uint8'],
       [
         profile.age,
@@ -285,7 +288,7 @@ export async function encryptAndEncodeUserProfile(
   
   return {
     encryptedData: '0x' + arrayBufferToHex(encryptedBuffer),
-    nonce: '0x' + arrayBufferToHex(nonce),
+    nonce: '0x' + arrayBufferToHex(nonce.buffer), // Converter Uint8Array para ArrayBuffer
   };
 }
 

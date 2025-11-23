@@ -31,13 +31,25 @@ export const PrevDLProvider: React.FC<PrevDLProviderProps> = ({ config, children
   useEffect(() => {
     const initializeSDK = async () => {
       try {
+        console.log('🔧 PrevDLProvider received config:', {
+          clientId: config.clientId,
+          environment: config.environment,
+          hasOasis: !!config.oasis,
+          oasisContract: config.oasis?.contractAddress,
+          oasisRpc: config.oasis?.rpcUrl,
+          hasWallet: !!config.oasis?.wallet,
+        });
+        
         const sdk = new PrevDLAds(config);
         await sdk.initialize();
         setPrevdlAds(sdk);
         setIsInitialized(true);
+        setError(null);
       } catch (err: any) {
         console.error('Failed to initialize PrevDL SDK:', err);
         setError(err.message || 'Failed to initialize SDK');
+        setPrevdlAds(null);
+        setIsInitialized(false);
       }
     };
 
