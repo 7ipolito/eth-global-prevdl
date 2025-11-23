@@ -24,6 +24,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "babel-plugin-react-css-modules": "^5.2.6"
+    "babel-plugin-react-css-modules": "^5.2.6",
+    "ts-node": "^10.9.2"
   }
 }

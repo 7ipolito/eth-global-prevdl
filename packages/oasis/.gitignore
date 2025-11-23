@@ -1,0 +1,24 @@
+# Foundry
+out/
+cache/
+cache_hardhat/
+
+# Dotenv file
+.env
+
+# Deployment files (remove this line if you want to commit deployments)
+deployments/*.json
+!deployments/.gitkeep
+
+# Node
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
