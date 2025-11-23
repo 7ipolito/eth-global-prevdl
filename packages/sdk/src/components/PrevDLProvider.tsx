@@ -44,6 +44,28 @@ export const PrevDLProvider: React.FC<PrevDLProviderProps> = ({ config, children
     initializeSDK();
   }, [config]);
 
+  // Show error state if initialization failed
+  if (error) {
+    return (
+      <div style={{ padding: '2rem', color: '#ff0000', background: '#000000', minHeight: '100vh' }}>
+        <h1>SDK Initialization Error</h1>
+        <p>{error}</p>
+        <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#888' }}>
+          Check the browser console for more details.
+        </p>
+      </div>
+    );
+  }
+
+  // Show loading state while initializing (optional - can be removed if you want to show children immediately)
+  // if (!isInitialized) {
+  //   return (
+  //     <div style={{ padding: '2rem', color: '#ffffff', background: '#000000', minHeight: '100vh' }}>
+  //       <p>Initializing SDK...</p>
+  //     </div>
+  //   );
+  // }
+
   return (
     <PrevDLContext.Provider value={{ prevdlAds, isInitialized, error }}>
       {children}

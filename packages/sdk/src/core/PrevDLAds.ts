@@ -62,13 +62,13 @@ export class PrevDLAds {
       console.log(`✅ Using Oasis Sapphire with mandatory encryption (${this.environment} mode)`);
     } else {
       // Fallback: se não é local e não tem Oasis config, usar Aztec
-      const sdkMode = this.environment === 'production' ? 'devnet' : this.environment as 'local' | 'sandbox' | 'devnet';
-      this.sdk = new PrevDLSDK({
-        mode: sdkMode,
-        aztecNodeUrl: config.aztecNodeUrl,
-        adTargetingAddress: config.adTargetingAddress,
-        adAuctionAddress: config.adAuctionAddress,
-      });
+    const sdkMode = this.environment === 'production' ? 'devnet' : this.environment as 'local' | 'sandbox' | 'devnet';
+    this.sdk = new PrevDLSDK({
+      mode: sdkMode,
+      aztecNodeUrl: config.aztecNodeUrl,
+      adTargetingAddress: config.adTargetingAddress,
+      adAuctionAddress: config.adAuctionAddress,
+    });
       console.log(`✅ Using Aztec Network (${this.environment} mode)`);
       console.warn('⚠️  Oasis config not provided. For Oasis Sapphire, provide config.oasis');
     }

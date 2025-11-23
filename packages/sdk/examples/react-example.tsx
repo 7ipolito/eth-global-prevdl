@@ -23,8 +23,7 @@ function App() {
     <PrevDLProvider
       config={{
         clientId: 'your-client-id',
-        environment: 'sandbox',
-        aztecNodeUrl: 'http://localhost:8080',
+        environment: 'local',
       }}
     >
       <div className="app">
