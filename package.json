@@ -28,6 +28,7 @@
     "babel-plugin-react-css-modules": "^5.2.6",
     "next": "^16.0.3",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "ts-node": "^10.9.2"
   }
 }

@@ -1,0 +1,22 @@
+PrevDL Ads - Oasis Sapphire Smart Contracts
+
+✅ Projeto inicializado com sucesso!
+
+Contratos implementados:
+- PrevDLAds.sol: Contrato principal com matching criptografado
+- Types.sol: Biblioteca de tipos e enums
+- ISapphire.sol: Interface para recursos do Sapphire
+
+Funcionalidades:
+🔐 Perfis de usuário criptografados
+🔐 Matching de ads privacy-preserving
+🔐 Todas operações condicionais são criptografadas
+📊 Analytics agregados públicos
+
+Próximos passos:
+1. Configure sua PRIVATE_KEY no arquivo .env
+2. Execute: make build
+3. Execute: make test
+4. Execute: make deploy-testnet
+
+Documentação completa: ../README.md

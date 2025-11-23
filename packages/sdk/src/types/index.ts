@@ -41,6 +41,7 @@ export enum Profession {
 }
 
 export enum Interest {
+  NONE = 0,    // Compatível com contrato Solidity
   TECH = 1,
   CRYPTO = 2,
   GAMING = 3,
@@ -182,12 +183,21 @@ export interface SDKConfig {
   };
 }
 
+export interface OasisSapphireConfig {
+  contractAddress: string;
+  rpcUrl: string;
+  privateKey?: string;
+  wallet?: any; // ethers.Wallet or JsonRpcSigner
+  requireEncryption?: boolean; // Default: true (forces encryption)
+}
+
 export interface PrevDLAdsConfig {
   clientId: string;
   environment?: PrevDLEnvironment;
   aztecNodeUrl?: string;
   adTargetingAddress?: string;
   adAuctionAddress?: string;
+  oasis?: OasisSapphireConfig; // Configuração para Oasis Sapphire
 }
 
 // ============================================
