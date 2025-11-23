@@ -17,23 +17,69 @@ interface IRequestPayload {
  * Read More: https://docs.world.org/mini-apps/commands/verify#verifying-the-proof
  */
 export async function POST(req: NextRequest) {
-  const { payload, action, signal } = (await req.json()) as IRequestPayload;
-  const app_id = process.env.NEXT_PUBLIC_APP_ID as `app_${string}`;
+  try {
+    const body = await req.json();
+    const { payload, action, signal } = body as IRequestPayload;
 
-  const verifyRes = (await verifyCloudProof(
-    payload,
-    app_id,
-    action,
-    signal,
-  )) as IVerifyResponse; // Wrapper on this
+    if (!payload) {
+      return NextResponse.json(
+        { error: 'Missing payload in request' },
+        { status: 400 },
+      );
+    }
 
-  if (verifyRes.success) {
-    // This is where you should perform backend actions if the verification succeeds
-    // Such as, setting a user as "verified" in a database
-    return NextResponse.json({ verifyRes, status: 200 });
-  } else {
-    // This is where you should handle errors from the World ID /verify endpoint.
-    // Usually these errors are due to a user having already verified.
-    return NextResponse.json({ verifyRes, status: 400 });
+    const app_id = process.env.NEXT_PUBLIC_APP_ID as `app_${string}`;
+
+    if (!app_id) {
+      return NextResponse.json(
+        { error: 'NEXT_PUBLIC_APP_ID is not configured' },
+        { status: 500 },
+      );
+    }
+
+    const verifyRes = (await verifyCloudProof(
+      payload,
+      app_id,
+      action,
+      signal,
+    )) as IVerifyResponse;
+
+    if (verifyRes.success) {
+      // This is where you should perform backend actions if the verification succeeds
+      // Such as, setting a user as "verified" in a database
+      return NextResponse.json({ verifyRes, status: 200 });
+    } else {
+      // This is where you should handle errors from the World ID /verify endpoint.
+      // Usually these errors are due to a user having already verified.
+      const errorMessage =
+        verifyRes.code === 'invalid_nullifier'
+          ? 'You have already verified your identity with this action. Each action can only be verified once per user.'
+          : verifyRes.detail || 'Verification failed';
+
+      console.error('Verification failed:', {
+        code: verifyRes.code,
+        detail: verifyRes.detail,
+        verifyRes,
+      });
+
+      return NextResponse.json(
+        {
+          verifyRes,
+          error: errorMessage,
+          code: verifyRes.code,
+          detail: verifyRes.detail,
+        },
+        { status: 400 },
+      );
+    }
+  } catch (error) {
+    console.error('Error in verify-proof route:', error);
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 },
+    );
   }
 }

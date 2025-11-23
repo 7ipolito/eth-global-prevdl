@@ -2,16 +2,17 @@
 import { walletAuth } from '@/auth/wallet';
 import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
 import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
-import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 
 /**
- * This component is an example of how to authenticate a user
- * We will use Next Auth for this example, but you can use any auth provider
+ * Component for authenticating a user with World App Wallet
  * Read More: https://docs.world.org/mini-apps/commands/wallet-auth
  */
 export const AuthButton = () => {
   const [isPending, setIsPending] = useState(false);
   const { isInstalled } = useMiniKit();
+  const router = useRouter();
 
   const onClick = useCallback(async () => {
     if (!isInstalled || isPending) {
@@ -20,31 +21,15 @@ export const AuthButton = () => {
     setIsPending(true);
     try {
       await walletAuth();
+      // Use router.push instead of NextAuth redirect for miniapp compatibility
+      // Small delay to ensure session is created
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      router.push('/home');
     } catch (error) {
-      console.error('Wallet authentication button error', error);
+      console.error('Wallet authentication error', error);
       setIsPending(false);
-      return;
     }
-
-    setIsPending(false);
-  }, [isInstalled, isPending]);
-
-  useEffect(() => {
-    const authenticate = async () => {
-      if (isInstalled && !isPending) {
-        setIsPending(true);
-        try {
-          await walletAuth();
-        } catch (error) {
-          console.error('Auto wallet authentication error', error);
-        } finally {
-          setIsPending(false);
-        }
-      }
-    };
-
-    authenticate();
-  }, [isInstalled, isPending]);
+  }, [isInstalled, isPending, router]);
 
   return (
     <LiveFeedback
@@ -57,9 +42,9 @@ export const AuthButton = () => {
     >
       <Button
         onClick={onClick}
-        disabled={isPending}
+        disabled={isPending || !isInstalled}
         size="lg"
-        variant="primary"
+        variant="secondary"
       >
         Login with Wallet
       </Button>
