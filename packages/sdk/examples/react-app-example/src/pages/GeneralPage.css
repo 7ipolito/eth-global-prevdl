@@ -6,16 +6,51 @@
   margin-bottom: 2rem;
 }
 
+.general-section-header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
 .general-section h2 {
   margin-top: 0;
   color: #ffffff;
   font-size: 1.3rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: -0.01em;
   display: flex;
   align-items: center;
+}
+
+.add-profile-btn {
+  background: transparent;
+  border: 1px solid #ffffff;
+  border-radius: 4px;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.add-profile-btn:hover {
+  background: #ffffff;
+  color: #000000;
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #ffffff;
+}
+
+.add-profile-btn:active {
+  transform: translate(0, 0);
+  box-shadow: none;
 }
 
 .general-description {
