@@ -14,7 +14,13 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@prevdl/sdk": ["../../src/index"],
+      "@prevdl/sdk/components": ["../../src/components"],
+      "@prevdl/sdk/core": ["../../src/core/PrevDLAds"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
