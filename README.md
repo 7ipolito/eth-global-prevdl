@@ -306,6 +306,7 @@ MIT License - see LICENSE file for details
 
 ## 🔗 Links
 
+- **Contract Address (Oasis Sapphire Testnet)**: https://explorer.oasis.io/testnet/sapphire/address/0x8a7d416E2fb2EEdC3a547Cadb3F21dD0dcFF19e0
 - **Demo Video**: [Link to demo video]
 - **Live Demo**: [Link to live application]
 - **Documentation**: [Link to full documentation]
