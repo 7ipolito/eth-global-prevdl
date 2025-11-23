@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Lock, User, Megaphone, Info, Shield, Target, Zap, ArrowRight, Heart } from 'lucide-react';
 import './App.css';
 
 // Tipos simplificados (copiados do SDK)
@@ -232,8 +233,8 @@ function App() {
   }, [userProfile]);
 
   const handleAdClick = (ad: Ad) => {
-    console.log('🖱️  Anúncio clicado:', ad.id, ad.title);
-    alert(`Você clicou no anúncio: ${ad.title}`);
+    console.log('Ad clicked:', ad.id, ad.title);
+    alert(`You clicked on the ad: ${ad.title}`);
   };
 
   return (
@@ -241,8 +242,14 @@ function App() {
       {/* Header */}
       <header className="app-header">
         <div className="header-content">
-          <h1>🔒 PREVDL SDK</h1>
-          <p className="subtitle">Privacy-Preserving Ad Targeting</p>
+          <div className="header-left">
+            <h1>PREVDL SDK</h1>
+            <p className="subtitle">Privacy-Preserving Ad Targeting</p>
+          </div>
+          <div className="header-right">
+            <a href="#general" className="header-link">general</a>
+            <a href="#ads" className="header-link">ads</a>
+          </div>
         </div>
       </header>
 
@@ -250,12 +257,15 @@ function App() {
       <main className="app-main">
         {/* User Profile Section */}
         <section className="profile-section">
-          <h2>👤 Perfil do Usuário</h2>
+          <h2>
+            <User size={24} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.5rem' }} />
+            User Profile
+          </h2>
           <div className="profile-card">
             {/* Age Selector */}
-            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#fff', borderRadius: '8px' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#667eea' }}>
-                🎂 Ajustar Idade: {userAge} anos
+            <div className="age-selector">
+              <label className="age-label">
+                Adjust Age: {userAge} years
               </label>
               <input
                 type="range"
@@ -263,60 +273,58 @@ function App() {
                 max="60"
                 value={userAge}
                 onChange={(e) => setUserAge(Number(e.target.value))}
-                style={{ width: '100%', cursor: 'pointer' }}
+                className="age-slider"
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#999', marginTop: '0.25rem' }}>
-                <span>18 anos (mais jovem)</span>
-                <span>60 anos (mais velho)</span>
+              <div className="age-labels">
+                <span>18 years (younger)</span>
+                <span>60 years (older)</span>
               </div>
-              <p style={{ marginTop: '0.75rem', fontSize: '0.9rem', color: '#666' }}>
-                💡 <strong>Teste:</strong> Mova o controle para ver anúncios diferentes para cada faixa etária!
+              <p className="age-hint">
+                <strong>Test:</strong> Move the slider to see different ads for each age range!
               </p>
             </div>
 
             <div className="profile-info">
               <div className="profile-item">
-                <strong>Idade:</strong> {userProfile.age} anos
+                <strong>Age:</strong> {userProfile.age} years
               </div>
               <div className="profile-item">
-                <strong>Localização:</strong> {Location[userProfile.location]}
+                <strong>Location:</strong> {Location[userProfile.location]}
               </div>
               <div className="profile-item">
-                <strong>Profissão:</strong> {Profession[userProfile.profession]}
+                <strong>Profession:</strong> {Profession[userProfile.profession]}
               </div>
               <div className="profile-item">
-                <strong>Interesses:</strong>{' '}
+                <strong>Interests:</strong>{' '}
                 {userProfile.interests.map(i => Interest[i]).join(', ')}
               </div>
             </div>
             <div className="privacy-note">
               <p>
-                🔐 <strong>Seus dados são privados!</strong>
+                <Shield size={18} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.5rem' }} />
+                <strong>Your data is private!</strong>
                 <br />
-                Apenas você vê essas informações. Os anunciantes veem apenas
-                se você corresponde ao perfil deles (sim/não).
+                Only you see this information. Advertisers only see
+                if you match their profile (yes/no).
               </p>
             </div>
           </div>
         </section>
 
         {/* Ads Section */}
-        <section className="ads-section">
-          <h2>📢 Anúncios Segmentados</h2>
+        <section className="ads-section" id="ads">
+          <h2>
+            <Megaphone size={24} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.5rem' }} />
+            Targeted Ads
+          </h2>
           <p className="ads-description">
-            Estes anúncios foram selecionados especificamente para você com
-            base no seu perfil, mantendo sua privacidade.
+            These ads were selected specifically for you based on
+            your profile, maintaining your privacy.
           </p>
           {!loading && (
-            <div style={{ 
-              background: '#e3f2fd', 
-              padding: '1rem', 
-              borderRadius: '8px', 
-              marginBottom: '1.5rem',
-              border: '2px solid #2196f3'
-            }}>
-              <p style={{ margin: 0, color: '#1565c0', fontWeight: 'bold' }}>
-                ✨ Encontramos <strong>{matchedAds.length}</strong> anúncios relevantes para seu perfil!
+            <div className="ads-count">
+              <p>
+                Found <strong>{matchedAds.length}</strong> relevant ads for your profile!
               </p>
             </div>
           )}
@@ -324,11 +332,11 @@ function App() {
           {loading ? (
             <div className="loading-state">
               <div className="spinner"></div>
-              <p>Carregando anúncios personalizados...</p>
+              <p>Loading personalized ads...</p>
             </div>
           ) : matchedAds.length === 0 ? (
             <div className="error-state">
-              <p>Nenhum anúncio encontrado para seu perfil</p>
+              <p>No ads found for your profile</p>
             </div>
           ) : (
             <div className="ads-container">
@@ -343,10 +351,10 @@ function App() {
                     <p className="ad-description">{ad.description}</p>
                     <div className="ad-footer">
                       <button className="ad-cta-button">
-                        {ad.ctaText || 'Saiba Mais'} →
+                        {ad.ctaText || 'Learn More'} <ArrowRight size={16} />
                       </button>
                       <span className="privacy-badge">
-                        🔒 Privado
+                        <Lock size={14} /> Private
                       </span>
                     </div>
                   </div>
@@ -357,31 +365,40 @@ function App() {
         </section>
 
         {/* Info Section */}
-        <section className="info-section">
-          <h2>ℹ️ Como Funciona</h2>
+        <section className="info-section" id="general">
+          <h2>
+            <Info size={24} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.5rem' }} />
+            How It Works
+          </h2>
           <div className="info-grid">
             <div className="info-card">
-              <div className="info-icon">🔒</div>
-              <h3>Privacidade Total</h3>
+              <div className="info-icon">
+                <Lock size={32} />
+              </div>
+              <h3>Total Privacy</h3>
               <p>
-                Seus dados pessoais nunca saem do seu dispositivo. Apenas o
-                resultado do match é compartilhado.
+                Your personal data never leaves your device. Only the
+                match result is shared.
               </p>
             </div>
             <div className="info-card">
-              <div className="info-icon">🎯</div>
-              <h3>Targeting Preciso</h3>
+              <div className="info-icon">
+                <Target size={32} />
+              </div>
+              <h3>Precise Targeting</h3>
               <p>
-                Anúncios relevantes baseados em idade, localização, profissão
-                e interesses.
+                Relevant ads based on age, location, profession
+                and interests.
               </p>
             </div>
             <div className="info-card">
-              <div className="info-icon">⚡</div>
+              <div className="info-icon">
+                <Zap size={32} />
+              </div>
               <h3>Zero-Knowledge</h3>
               <p>
-                Powered by Aztec Network para garantir privacidade com provas
-                de conhecimento zero.
+                Powered by Aztec Network to ensure privacy with zero
+                knowledge proofs.
               </p>
             </div>
           </div>
@@ -391,7 +408,7 @@ function App() {
       {/* Footer */}
       <footer className="app-footer">
         <p>
-          Feito com ❤️ usando{' '}
+          Made with <Heart size={14} style={{ display: 'inline-block', verticalAlign: 'middle' }} /> using{' '}
           <a
             href="https://github.com/your-repo"
             target="_blank"
@@ -401,8 +418,8 @@ function App() {
           </a>
         </p>
         <p className="footer-note">
-          Ambiente: <strong>LOCAL</strong> (dados mock) | Abra o console para
-          ver os logs
+          Environment: <strong>LOCAL</strong> (mock data) | Open the console to
+          see the logs
         </p>
       </footer>
     </div>
