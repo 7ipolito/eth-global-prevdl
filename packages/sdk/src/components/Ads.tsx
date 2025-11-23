@@ -89,6 +89,7 @@ export const Ads: React.FC<AdsProps> = ({
           }
 
         } catch (err) {
+          console.warn('Could not get wallet address:', err);
         }
       }
 
@@ -99,6 +100,7 @@ export const Ads: React.FC<AdsProps> = ({
       setAds(limitedAds);
       setIsLoading(false);
     } catch (err: any) {
+      console.error('❌ Error fetching ads:', err);
       setError(err.message || 'Failed to load ads');
       setIsLoading(false);
     }
@@ -114,6 +116,7 @@ export const Ads: React.FC<AdsProps> = ({
     }
 
     if (devHighlights) {
+      console.log(`👁️  Impression tracked for ad: ${ad.id}`);
     }
   }, [impressionTracked, onAdImpression, devHighlights]);
 
@@ -123,6 +126,7 @@ export const Ads: React.FC<AdsProps> = ({
     }
 
     if (devHighlights) {
+      console.log(`🖱️  Click tracked for ad: ${ad.id}`);
     }
 
     if (ad.ctaLink) {

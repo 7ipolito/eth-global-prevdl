@@ -11,8 +11,8 @@
  *   npx tsx examples/list-all-campaigns.ts
  */
 
-import { PrevDLAds } from '../src/core/PrevDLAds';
-import { Location, Profession, Interest, Gender } from '../src/types';
+import { PrevDLAds } from '../../src/core/PrevDLAds';
+import { Location, Profession, Interest, Gender } from '../../src/types';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { ethers } from 'ethers';

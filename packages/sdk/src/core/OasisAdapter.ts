@@ -1,9 +1,24 @@
+/**
+ * Oasis Sapphire Adapter - Força Criptografia Obrigatória
+ * 
+ * Este adapter garante que TODOS os dados sejam criptografados
+ * antes de serem enviados para o contrato Oasis Sapphire.
+ * 
+ * RISCOS DE ENVIAR DADOS SEM CRIPTOGRAFIA:
+ * 1. Dados visíveis no mempool antes de serem processados
+ * 2. Interceptação em trânsito (man-in-the-middle)
+ * 3. Exposição em logs de RPC nodes
+ * 4. Vazamento em caso de comprometimento do nó
+ * 5. Não-compliance com LGPD/GDPR
+ */
+
 import type { UserProfile } from '../types';
 import {
   encryptAndEncodeUserProfile,
   isEncryptionSupported,
 } from '../utils/encryption';
 
+// Types for ethers (to avoid hard dependency)
 type EthersProvider = any;
 type EthersSigner = any;
 type EthersContract = any;
@@ -12,9 +27,9 @@ type EthersWallet = any;
 export interface OasisConfig {
   contractAddress: string;
   rpcUrl: string;
-  privateKey?: string;
-  wallet?: EthersWallet | EthersSigner;
-  requireEncryption?: boolean;
+  privateKey?: string; // Para transações assinadas
+  wallet?: EthersWallet | EthersSigner; // Wallet conectada
+  requireEncryption?: boolean; // Força criptografia (default: true)
 }
 
 export class OasisAdapter {
@@ -26,14 +41,18 @@ export class OasisAdapter {
   private ethers: any;
   private ethersLoadPromise: Promise<any> | null = null;
   
+  // Helper para converter valores do ethers (compatível com v5 e v6)
   private toNumber(value: any): number {
     if (typeof value === 'number') return value;
     if (typeof value === 'bigint') return Number(value);
-    if (value?.toNumber) return value.toNumber();
-    if (value?.toString) return Number(value.toString());
+    if (value?.toNumber) return value.toNumber(); // ethers v5
+    if (value?.toString) return Number(value.toString()); // ethers v6
     return Number(value);
   }
 
+  /**
+   * Carrega ethers dinamicamente (compatível com navegador e Node.js)
+   */
   private async ensureEthersLoaded(): Promise<any> {
     if (this.ethers) {
       return this.ethers;
@@ -45,7 +64,10 @@ export class OasisAdapter {
 
     this.ethersLoadPromise = (async () => {
       try {
+        // Tentar import dinâmico (funciona no navegador e Node.js com ES modules)
         const ethersModule = await import('ethers');
+        // ethers v6 não tem default export, usa o módulo diretamente
+        // ethers v5 pode ter default ou namespace
         this.ethers = (ethersModule as any).default || ethersModule;
         return this.ethers;
       } catch (error: any) {
@@ -58,15 +80,25 @@ export class OasisAdapter {
     return this.ethersLoadPromise;
   }
 
+  // ABI do contrato PrevDLAds
   private static readonly CONTRACT_ABI = [
+    // Função para criar perfil criptografado
     'function setUserProfileEncrypted(bytes calldata encryptedData, bytes32 nonce) external',
+    // Função para criar perfil (DEPRECATED - apenas para compatibilidade)
     'function setUserProfile(uint8 age, uint8 location, uint8 profession, uint8[3] calldata interests, uint8 gender) external',
+    // Função para obter perfil do usuário
     'function getUserProfile(address user) external view returns (tuple(uint8 age, uint8 location, uint8 profession, uint8[3] interests, uint8 gender))',
+    // Função para verificar matching
     'function checkAdMatch(uint256 campaignId, address user) public view returns (tuple(bool isMatch, bool ageMatch, bool locationMatch, bool professionMatch, bool interestMatch, bool genderMatch))',
+    // Função para obter ads matching
     'function getMatchingAds(address user) external view returns (tuple(uint256 id, bytes32 creativeHash, string ctaUrl, uint256 bidPerImpression, uint256 bidPerClick, uint256 impressions, uint256 clicks, uint256 matches, uint256 rankingScore)[])',
+    // Função para obter campanha específica
     'function getCampaign(uint256 campaignId) external view returns (tuple(uint256 id, address advertiser, bytes32 creativeHash, string ctaUrl, tuple(uint8 targetAgeMin, uint8 targetAgeMax, uint8 targetLocation, uint8 targetProfession, uint8 targetInterest, uint8 targetGender) targeting, uint256 budgetUSDC, uint256 spentUSDC, uint256 dailyBudgetUSDC, uint256 bidPerImpression, uint256 bidPerClick, uint8 status, uint256 impressions, uint256 clicks, uint256 matches, uint256 createdAt, uint256 activatedAt))',
+    // Função para obter campanhas ativas
     'function getActiveCampaigns() external view returns (uint256[])',
+    // Função para obter total de campanhas
     'function getTotalCampaigns() external view returns (uint256)',
+    // Função para verificar se usuário tem perfil
     'function hasProfile(address user) external view returns (bool)',
     // Função para registrar impressão
     'function recordImpression(uint256 campaignId) external',
@@ -106,6 +138,11 @@ export class OasisAdapter {
 
     // Avisar se tentaram desabilitar criptografia
     if (config.requireEncryption === false) {
+      console.warn(
+        '⚠️  WARNING: requireEncryption=false was ignored. ' +
+        'Encryption is ALWAYS required for security. ' +
+        'This ensures data is encrypted before sending and decrypted only in TEE.'
+      );
     }
 
     // Inicialização assíncrona será feita no método initialize()
@@ -218,13 +255,18 @@ export class OasisAdapter {
     // Dados são criptografados assim que recebidos do frontend
     // Isso reduz o risco de interceptação no mesmo processo
     
+    console.log('🔐 Encrypting user profile immediately (minimizing plaintext exposure)...');
+
     try {
       // 🔐 CRIPTOGRAFIA AES-256-GCM COMPLETA
       // 1. Codificar dados para ABI primeiro
       // 2. Criptografar com AES-256-GCM usando chave derivada da wallet
       // 3. Enviar dados criptografados para o contrato
+      // 4. O contrato descriptografa no TEE antes de fazer abi.decode  
       
-      const interests: number[] = [...userProfile.interests];
+      console.log('   📝 Step 1: Encoding profile to ABI format...');
+      
+      // Garantir que interests tenha exatamente 3 elementos
       const interests: number[] = [...userProfile.interests];
       while (interests.length < 3) {
         interests.push(0); // Preencher com 0 (NONE)
@@ -246,6 +288,7 @@ export class OasisAdapter {
           ]
         );
       } else if (this.ethers.utils?.defaultAbiCoder) {
+        // ethers v5
         encoded = this.ethers.utils.defaultAbiCoder.encode(
           ['uint8', 'uint8', 'uint8', 'uint8[3]', 'uint8'],
           [
@@ -260,19 +303,44 @@ export class OasisAdapter {
         throw new Error('ABI encoder not available in ethers');
       }
       
+      console.log('   ✅ ABI encoding complete');
+      console.log('   🔐 Step 2: Encrypting with AES-256-GCM...');
+      
+      // 2. Criptografar com AES-256-GCM
       const { encryptAndEncodeUserProfile } = await import('../utils/encryption');
       const { encryptedData, nonce } = await encryptAndEncodeUserProfile(userProfile, userAddress);
       
+      console.log('   ✅ AES-256-GCM encryption complete');
+      console.log(`   📦 Encrypted size: ${(encryptedData.length - 2) / 2} bytes`);
+      
+      // encryptedData já está no formato correto (hex string com 0x)
+      // nonce precisa ser bytes32 (32 bytes = 64 hex chars)
+
+      // 3. Limpar referência ao perfil original (ajuda GC)
+      // Nota: JavaScript não garante limpeza imediata, mas ajuda
       (userProfile as any) = null;
 
+      console.log('   📤 Step 3: Preparing encrypted data for contract...');
+
+      // Converter para formato correto (ethers v6)
+      // encryptedData precisa ser bytes (string hex é aceita)
+      // nonce precisa ser bytes32 (exatamente 32 bytes = 64 hex chars)
       let encryptedBytes: string = encryptedData.startsWith('0x') ? encryptedData : '0x' + encryptedData;
       
+      // Garantir que nonce tem exatamente 32 bytes (64 hex chars)
       let nonceHexClean = nonce.startsWith('0x') ? nonce.slice(2) : nonce;
       if (nonceHexClean.length !== 64) {
+        // Padding ou truncar para exatamente 32 bytes
         nonceHexClean = nonceHexClean.padEnd(64, '0').slice(0, 64);
       }
       const nonceBytes32 = '0x' + nonceHexClean;
 
+      console.log(`   📦 Encrypted data length: ${(encryptedBytes.length - 2) / 2} bytes`);
+      console.log(`   🔑 Nonce (bytes32): ${nonceBytes32.substring(0, 20)}... (${nonceHexClean.length / 2} bytes)`);
+      console.log('   ✅ Data ready for contract (encrypted with AES-256-GCM)');
+      console.log('   🔐 Contract will decrypt in TEE before processing');
+
+      // Verificar se os dados estão no formato correto
       if (!encryptedBytes.startsWith('0x') || encryptedBytes.length < 4) {
         throw new Error('Invalid encrypted data format');
       }
@@ -280,24 +348,37 @@ export class OasisAdapter {
         throw new Error(`Invalid nonce length: expected 64 hex chars (32 bytes), got ${nonceHexClean.length}`);
       }
 
+      // 2. Enviar dados criptografados para o contrato
+      // ethers v6 aceita strings hex diretamente para bytes e bytes32
+      // Não converter para Uint8Array - deixar como string hex
+      
+      console.log(`   🔍 Debug: encryptedBytes type: ${typeof encryptedBytes}, length: ${encryptedBytes.length}`);
+      console.log(`   🔍 Debug: nonceBytes32 type: ${typeof nonceBytes32}, length: ${nonceBytes32.length}`);
+      
+      // Verificar se o contrato está inicializado
       if (!this.contract) {
         throw new Error('Contract not initialized');
       }
       
+      // Verificar se a função existe no contrato
       if (!this.contract.setUserProfileEncrypted) {
         throw new Error('setUserProfileEncrypted function not found in contract');
       }
       
+      // Tentar chamar a função
+      // No ethers v6, strings hex são aceitas diretamente para bytes e bytes32
       let tx;
       try {
         tx = await this.contract.setUserProfileEncrypted(
-          encryptedBytes,
-          nonceBytes32,
+          encryptedBytes,  // string hex
+          nonceBytes32,    // string hex (bytes32)
           {
             gasLimit: 500000,
           }
         );
       } catch (callError: any) {
+        // Se falhar, tentar com Interface manual (fallback)
+        console.warn('   ⚠️  Direct call failed, trying manual encoding...');
         const iface = new this.ethers.Interface(OasisAdapter.CONTRACT_ABI);
         const data = iface.encodeFunctionData('setUserProfileEncrypted', [
           encryptedBytes,
@@ -311,10 +392,15 @@ export class OasisAdapter {
         });
       }
 
+      console.log('⏳ Waiting for transaction confirmation...');
       await tx.wait();
+
+      console.log('✅ Profile saved successfully (encrypted)');
+      console.log(`📝 Transaction hash: ${tx.hash}`);
 
       return tx.hash;
     } catch (error: any) {
+      console.error('❌ Error setting encrypted profile:', error.message);
       throw new Error(
         `Failed to set encrypted user profile: ${error.message}`
       );
