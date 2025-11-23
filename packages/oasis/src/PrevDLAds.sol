@@ -625,6 +625,19 @@ contract PrevDLAds {
         return campaigns[campaignId];
     }
 
+    /**
+     * @notice Obter apenas o targeting de uma campanha (para debug)
+     * @dev Função útil para verificar critérios de matching sem expor dados sensíveis
+     */
+    function getCampaignTargeting(uint256 campaignId) 
+        external 
+        view 
+        returns (Types.AdTargeting memory) 
+    {
+        require(campaignExists[campaignId], "Campaign does not exist");
+        return campaigns[campaignId].targeting;
+    }
+
     function getActiveCampaigns() 
         external 
         view 

@@ -1,12 +1,23 @@
-/**
- * Ads Component - React component for displaying targeted ads
- * 
- * Privacy-preserving ad display using PREVDL SDK
- */
-
 import React, { useEffect, useState, useCallback } from 'react';
 import type { Ad, UserProfile } from '../types';
 import { usePrevDLAds } from './PrevDLProvider';
+
+const convertBigIntToNumber = (value: any): any => {
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+  if (typeof value === 'object' && value !== null) {
+    if (Array.isArray(value)) {
+      return value.map(convertBigIntToNumber);
+    }
+    const converted: any = {};
+    for (const key in value) {
+      converted[key] = convertBigIntToNumber(value[key]);
+    }
+    return converted;
+  }
+  return value;
+};
 
 export interface AdsProps {
   userProfile: UserProfile;
@@ -37,7 +48,6 @@ export const Ads: React.FC<AdsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [impressionTracked, setImpressionTracked] = useState<Set<string>>(new Set());
 
-  // Fetch targeted ads
   const fetchAds = useCallback(async () => {
     if (!prevdlAds) {
       setError('PrevDL Ads SDK not initialized');
@@ -49,30 +59,53 @@ export const Ads: React.FC<AdsProps> = ({
       setIsLoading(true);
       setError(null);
 
-      // Se estiver usando Oasis, precisamos do endereço da wallet
       let userAddress: string | undefined;
       if (prevdlAds.oasisAdapter) {
         try {
           userAddress = await prevdlAds.oasisAdapter.getWalletAddress();
+          
+          const hasUserProfile = await prevdlAds.hasProfile(userAddress);
+          if (!hasUserProfile) {
+            await prevdlAds.setUserProfile(userProfile, userAddress);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          } else {
+            try {
+              const savedProfile = await prevdlAds.getUserProfile(userAddress);
+              const needsUpdate = 
+                savedProfile.age !== userProfile.age ||
+                savedProfile.location !== userProfile.location ||
+                savedProfile.profession !== userProfile.profession ||
+                JSON.stringify(savedProfile.interests.sort()) !== JSON.stringify(userProfile.interests.sort()) ||
+                savedProfile.gender !== userProfile.gender;
+              
+              if (needsUpdate) {
+                await prevdlAds.setUserProfile(userProfile, userAddress);
+                await new Promise(resolve => setTimeout(resolve, 3000));
+              }
+            } catch {
+              await prevdlAds.setUserProfile(userProfile, userAddress);
+              await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+          }
+
         } catch (err) {
           console.warn('Could not get wallet address:', err);
-          // Continuar sem endereço - pode ser modo local
         }
       }
 
       const matchedAds = await prevdlAds.getTargetedAds(userProfile, userAddress);
+      
       const limitedAds = matchedAds.slice(0, maxAds);
       
       setAds(limitedAds);
       setIsLoading(false);
     } catch (err: any) {
-      console.error('Error fetching ads:', err);
+      console.error('❌ Error fetching ads:', err);
       setError(err.message || 'Failed to load ads');
       setIsLoading(false);
     }
   }, [prevdlAds, userProfile, maxAds]);
 
-  // Track impression when ad becomes visible
   const trackImpression = useCallback((ad: Ad) => {
     if (impressionTracked.has(ad.id)) return;
 
@@ -87,7 +120,6 @@ export const Ads: React.FC<AdsProps> = ({
     }
   }, [impressionTracked, onAdImpression, devHighlights]);
 
-  // Handle ad click
   const handleAdClick = useCallback((ad: Ad) => {
     if (onAdClick) {
       onAdClick(ad);
@@ -97,25 +129,21 @@ export const Ads: React.FC<AdsProps> = ({
       console.log(`🖱️  Click tracked for ad: ${ad.id}`);
     }
 
-    // Open ad link
     if (ad.ctaLink) {
       window.open(ad.ctaLink, '_blank', 'noopener,noreferrer');
     }
   }, [onAdClick, devHighlights]);
 
-  // Fetch ads on mount and when user profile changes
   useEffect(() => {
     fetchAds();
   }, [fetchAds]);
 
-  // Track impressions when ads are loaded
   useEffect(() => {
     if (ads.length > 0) {
       ads.forEach(ad => trackImpression(ad));
     }
   }, [ads, trackImpression]);
 
-  // Loading state
   if (isLoading) {
     return loading || (
       <div className={`prevdl-ads-loading ${className}`}>
@@ -125,7 +153,6 @@ export const Ads: React.FC<AdsProps> = ({
     );
   }
 
-  // Error state
   if (error) {
     return errorComponent || (
       <div className={`prevdl-ads-error ${className}`}>
@@ -134,7 +161,6 @@ export const Ads: React.FC<AdsProps> = ({
     );
   }
 
-  // No ads state
   if (ads.length === 0) {
     return (
       <div className={`prevdl-ads-empty ${className}`}>
@@ -143,7 +169,8 @@ export const Ads: React.FC<AdsProps> = ({
     );
   }
 
-  // Render ads
+  const isSandbox = prevdlAds?.getEnvironment() === 'sandbox';
+
   return (
     <div className={`prevdl-ads-container ${className}`}>
       {ads.map((ad) => (
@@ -155,7 +182,7 @@ export const Ads: React.FC<AdsProps> = ({
           {renderAd ? (
             renderAd(ad)
           ) : (
-            <DefaultAdRender ad={ad} />
+            <DefaultAdRender ad={ad} isSandbox={isSandbox} />
           )}
         </div>
       ))}
@@ -163,8 +190,9 @@ export const Ads: React.FC<AdsProps> = ({
   );
 };
 
-// Default ad renderer
-const DefaultAdRender: React.FC<{ ad: Ad }> = ({ ad }) => {
+const DefaultAdRender: React.FC<{ ad: Ad; isSandbox?: boolean }> = ({ ad, isSandbox = false }) => {
+  const campaignUrl = isSandbox ? (ad.ctaLink || ad.ctaUrl) : null;
+  
   return (
     <div className="prevdl-ad-default">
       {ad.imageUrl && (
@@ -176,16 +204,68 @@ const DefaultAdRender: React.FC<{ ad: Ad }> = ({ ad }) => {
         </div>
       )}
       <div className="prevdl-ad-content">
-        <h3 className="prevdl-ad-title">{ad.title}</h3>
-        <p className="prevdl-ad-description">{ad.description}</p>
+        <h3 className="prevdl-ad-title">{ad.title || 'Anúncio'}</h3>
+        <p className="prevdl-ad-description">{ad.description || 'Anúncio personalizado baseado no seu perfil'}</p>
+        {isSandbox && campaignUrl && (
+          <div className="prevdl-ad-url-info" style={{ 
+            fontSize: '0.8rem', 
+            color: '#888', 
+            marginTop: '0.75rem',
+            padding: '0.5rem',
+            background: '#0a0a0a',
+            border: '1px solid #333',
+            borderRadius: '4px',
+            wordBreak: 'break-all',
+            fontFamily: 'monospace'
+          }}>
+            <div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '0.25rem' }}>
+              🔗 URL da Campanha (Sandbox):
+            </div>
+            <a 
+              href={campaignUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{ 
+                color: '#4a9eff', 
+                textDecoration: 'none',
+                wordBreak: 'break-all'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+              onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+            >
+              {campaignUrl}
+            </a>
+          </div>
+        )}
         <div className="prevdl-ad-footer">
           {ad.ctaText && (
-            <button className="prevdl-ad-cta">
+            <button 
+              className="prevdl-ad-cta"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isSandbox && campaignUrl) {
+                  window.open(campaignUrl, '_blank', 'noopener,noreferrer');
+                }
+              }}
+            >
               {ad.ctaText}
+            </button>
+          )}
+          {!ad.ctaText && isSandbox && campaignUrl && (
+            <button 
+              className="prevdl-ad-cta"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(campaignUrl, '_blank', 'noopener,noreferrer');
+              }}
+            >
+              Acessar URL
             </button>
           )}
           <div className="prevdl-ad-privacy-badge">
             <small>🔒 Privacy-preserving</small>
+            {isSandbox && <small style={{ marginLeft: '0.5rem', color: '#4a9eff' }}>🌊 Sandbox</small>}
           </div>
         </div>
       </div>
@@ -193,7 +273,6 @@ const DefaultAdRender: React.FC<{ ad: Ad }> = ({ ad }) => {
   );
 };
 
-// Export default styles
 export const defaultStyles = `
 .prevdl-ads-container {
   display: grid;

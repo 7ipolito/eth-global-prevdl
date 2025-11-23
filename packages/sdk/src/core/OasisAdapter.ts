@@ -448,6 +448,15 @@ export class OasisAdapter {
    */
   async getMatchingAds(userAddress: string): Promise<any[]> {
     try {
+      // Verificar se o usuário tem perfil antes de chamar getMatchingAds
+      // O contrato reverte com "User has no profile" se não tiver perfil
+      const hasUserProfile = await this.hasProfile(userAddress);
+      
+      if (!hasUserProfile) {
+        console.warn(`⚠️  User ${userAddress} has no profile. Returning empty array.`);
+        return [];
+      }
+
       const ads = await this.contract.getMatchingAds(userAddress);
       
       // Converter valores BigNumber para números (compatível com ethers v5 e v6)
@@ -463,6 +472,15 @@ export class OasisAdapter {
         rankingScore: this.toNumber(ad.rankingScore),
       }));
     } catch (error: any) {
+      // Verificar se o erro é devido à falta de perfil
+      if (error.message && (
+        error.message.includes('User has no profile') ||
+        error.message.includes('BAD_DATA') ||
+        error.message.includes('value="0x"')
+      )) {
+        console.warn(`⚠️  User ${userAddress} has no profile or contract reverted. Returning empty array.`);
+        return [];
+      }
       throw new Error(`Failed to get matching ads: ${error.message}`);
     }
   }
@@ -753,6 +771,44 @@ export class OasisAdapter {
   }
 
   /**
+   * Obtém IDs de todas as campanhas (ativas e inativas)
+   * 
+   * @returns Array de IDs de todas as campanhas
+   */
+  async getAllCampaigns(): Promise<number[]> {
+    try {
+      const total = await this.getTotalCampaigns();
+      const allCampaignIds: number[] = [];
+      
+      // Usar Promise.all para buscar todas as campanhas em paralelo (mais eficiente)
+      const campaignPromises: Promise<number | null>[] = [];
+      
+      for (let i = 1; i <= total; i++) {
+        campaignPromises.push(
+          this.contract.getCampaign(i)
+            .then((campaign: any) => {
+              // Verificar se a campanha existe e tem ID válido
+              if (campaign && campaign.id && this.toNumber(campaign.id) === i) {
+                return i;
+              }
+              return null;
+            })
+            .catch(() => {
+              // Se a campanha não existir, retornar null
+              return null;
+            })
+        );
+      }
+      
+      // Aguardar todas as promessas e filtrar valores nulos
+      const results = await Promise.all(campaignPromises);
+      return results.filter((id): id is number => id !== null);
+    } catch (error: any) {
+      throw new Error(`Failed to get all campaigns: ${error.message}`);
+    }
+  }
+
+  /**
    * Obtém perfil do usuário (apenas o próprio usuário pode acessar)
    * 
    * ⚠️ IMPORTANTE: O contrato verifica se msg.sender == user
@@ -840,13 +896,25 @@ export class OasisAdapter {
    * Verifica se um usuário tem perfil cadastrado
    * 
    * @param userAddress Endereço do usuário
-   * @returns true se o usuário tem perfil
+   * @returns true se o usuário tem perfil, false caso contrário ou se houver erro
    */
   async hasProfile(userAddress: string): Promise<boolean> {
     try {
       return await this.contract.hasProfile(userAddress);
     } catch (error: any) {
-      throw new Error(`Failed to check if user has profile: ${error.message}`);
+      // Se o erro é de decodificação (BAD_DATA, value="0x"), assume que não tem perfil
+      // Isso pode acontecer se o contrato reverte ou se há problemas de rede
+      if (error.message && (
+        error.message.includes('BAD_DATA') ||
+        error.message.includes('value="0x"') ||
+        error.message.includes('could not decode result data')
+      )) {
+        console.warn(`⚠️  Could not check profile status for ${userAddress}. Assuming no profile exists.`);
+        return false;
+      }
+      // Para outros erros, também assumimos que não tem perfil para permitir criação
+      console.warn(`⚠️  Error checking profile: ${error.message}. Assuming no profile exists.`);
+      return false;
     }
   }
 

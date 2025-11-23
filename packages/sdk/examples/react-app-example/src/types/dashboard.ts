@@ -7,6 +7,7 @@ export interface AdMetrics {
   date: string;
   amountPaid: number;
   imageUrl?: string;
+  status?: string;
 }
 
 export interface DashboardAd extends Ad {
