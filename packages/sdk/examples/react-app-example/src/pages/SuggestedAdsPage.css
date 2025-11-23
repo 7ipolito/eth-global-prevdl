@@ -1,0 +1,246 @@
+/* Profile Section */
+.profile-section {
+  background: #141414;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.profile-section h2 {
+  margin-top: 0;
+  color: #ffffff;
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+}
+
+.profile-card {
+  background: #000000;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.profile-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.profile-item {
+  padding: 1rem;
+  background: #0f0f0f;
+  border: 1px solid #ffffff;
+  border-radius: 6px;
+  color: #ffffff;
+}
+
+.profile-item strong {
+  display: block;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+/* Ads Section */
+.ads-section {
+  background: #0f0f0f;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.ads-section h2 {
+  margin-top: 0;
+  color: #ffffff;
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+}
+
+.ads-description {
+  color: #888888;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ads-count {
+  background: #000000;
+  padding: 1rem;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.ads-count p {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ads-count strong {
+  color: #ffffff;
+}
+
+.ads-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.custom-ad-card {
+  background: #000000;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.custom-ad-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 #ffffff;
+}
+
+.ad-content {
+  padding: 1.25rem;
+}
+
+.ad-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.25rem;
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.ad-description {
+  margin: 0 0 1rem 0;
+  color: #888888;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.ad-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ad-cta-button {
+  flex: 1;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.1s;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ad-cta-button:hover {
+  background: #000000;
+  color: #ffffff;
+  transform: translate(-2px, -2px);
+  box-shadow: 2px 2px 0 #ffffff;
+}
+
+.privacy-badge {
+  background: #000000;
+  border: 1px solid #ffffff;
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.75rem;
+  color: #888888;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 3rem;
+  color: #888888;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 2px solid #ffffff;
+  border-top: 4px solid #000000;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  color: #888888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.error-state {
+  text-align: center;
+  padding: 2rem;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+}
+
+.error-state p {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 768px) {
+  .profile-section,
+  .ads-section {
+    padding: 1.5rem;
+  }
+
+  .ads-container {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-info {
+    grid-template-columns: 1fr;
+  }
+}
+

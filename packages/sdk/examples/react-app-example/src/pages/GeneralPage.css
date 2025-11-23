@@ -1,0 +1,44 @@
+.general-section {
+  background: #141414;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.general-section h2 {
+  margin-top: 0;
+  color: #ffffff;
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+}
+
+.general-description {
+  color: #888888;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .general-section {
+    padding: 1.5rem;
+  }
+
+  .profiles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
